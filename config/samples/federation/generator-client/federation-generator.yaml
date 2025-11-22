@@ -1,0 +1,18 @@
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: Federation
+metadata:
+  name: local-federation-generator
+spec:
+  server:
+    url: "http://localhost:30080"
+  generator:
+    namespace: "federation-example"
+    kind: "Fake"
+    name: "federation-generator"
+  auth:
+    tokenSecretRef:
+      name: "federation-token"
+      key: "token"
+    caCertSecretRef:
+      name: "federation-token"
+      key: "ca.crt"

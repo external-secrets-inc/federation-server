@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: external-secrets-federation-nodeport
+  namespace: external-secrets
+spec:
+  type: NodePort
+  ports:
+    - port: 8000
+      protocol: TCP
+      targetPort: server
+      nodePort: 30080
+  selector:
+    app.kubernetes.io/name: external-secrets
+    app.kubernetes.io/instance: external-secrets

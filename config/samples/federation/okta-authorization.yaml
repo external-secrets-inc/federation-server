@@ -1,0 +1,37 @@
+---
+# Example Authorization for Okta-authenticated client to access ClusterSecretStores
+# NOTE: Okta uses the existing OIDC subject type for authorization
+apiVersion: federation.external-secrets.io/v1alpha1
+kind: Authorization
+metadata:
+  name: okta-client-authorization
+spec:
+  # Reference to the OktaFederation resource
+  federationRef:
+    kind: OktaFederation
+    name: okta-prod
+  
+  # Subject uses OIDC type (Okta is OAuth2/OIDC compliant)
+  subject:
+    oidc:
+      # Issuer must match the Okta authorization server
+      # Format: https://{domain}/oauth2/{authServerId}
+      issuer: "https://trial-1038013.okta.com"
+      # Subject must match the client ID from Okta OAuth2 application
+      # For client credentials flow, sub claim equals the client ID
+      subject: "0oawl3l22qkmQK274697"
+  
+  # Which ClusterSecretStores this client can access
+  allowedClusterSecretStores:
+    - "vault-backend"
+  
+  # Generators are not yet supported for Okta (requires KubeAttributes)
+  # This will be added in a future iteration
+  allowedGenerators:
+  - name: dynamic-generator
+    kind: OpenAI
+    namespace: dynamic
+  - name: dynamic-psql-generator
+    kind: PostgreSql
+    namespace: dynamic
+  allowedGeneratorStates: []

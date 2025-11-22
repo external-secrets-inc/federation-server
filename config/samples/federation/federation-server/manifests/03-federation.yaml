@@ -1,0 +1,7 @@
+apiVersion: federation.external-secrets.io/v1alpha1
+kind: KubernetesFederation
+metadata:
+  name: current-cluster-federation
+  namespace: federation-example
+spec:
+  url: "https://kubernetes.default.svc.cluster.local"

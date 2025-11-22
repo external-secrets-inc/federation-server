@@ -1,0 +1,20 @@
+apiVersion: federation.external-secrets.io/v1alpha1
+kind: Authorization
+metadata:
+  name: current-cluster-auth
+  namespace: federation-example
+spec:
+  federationRef:
+    name: current-cluster-federation
+    kind: KubernetesFederation
+  subject:
+    subject: "system:serviceaccount:federation-example:federation-sa"
+    issuer: "https://kubernetes.default.svc.cluster.local"
+  allowedClusterSecretStores:
+    - "federation-secret-store"
+  allowedGeneratorStates:
+    - namespace: "federation-example"
+  allowedGenerators:
+    - name: federation-generator
+      kind: Fake
+      namespace: federation-example

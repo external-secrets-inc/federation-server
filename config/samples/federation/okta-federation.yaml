@@ -1,0 +1,16 @@
+---
+# Example OktaFederation resource for a production Okta organization with custom auth server
+apiVersion: identity.federation.external-secrets.io/v1alpha1
+kind: OktaFederation
+metadata:
+  name: okta-prod
+spec:
+  # Okta organization domain (can be custom domain)
+  domain: "https://trial-1038013.okta.com"
+  # Custom authorization server ID
+  authorizationServerId: ""
+  managementAPI:
+    apiTokenSecretRef:
+      name: okta-key
+      namespace: external-secrets
+      key: token

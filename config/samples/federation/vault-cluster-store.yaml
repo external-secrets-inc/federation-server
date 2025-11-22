@@ -1,0 +1,15 @@
+apiVersion: external-secrets.io/v1
+kind: ClusterSecretStore
+metadata:
+  name: vault-backend
+spec:
+  provider:
+    vault:
+      auth:
+        tokenSecretRef:
+          key: token
+          name: vault
+          namespace: eso-server
+      path: secret
+      server: http://localhost:8200
+      version: v2
