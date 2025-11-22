@@ -4,7 +4,7 @@ This repo hosts the federation CRDs, controllers, and HTTP/mTLS server split out
 
 ## Bootstrap
 - Go 1.25.4+.
-- `go mod tidy` is wired to the local enterprise tree via `replace` for now; swap the `require github.com/external-secrets/external-secrets v0.0.0-20251122115546-112c9c0c7d67` to a tagged version and drop the `replace` block once a published tag exists.
+- `go mod tidy` uses a `replace` to the enterprise repo at commit `112c9c0c7d67`. Swap the `require github.com/external-secrets/external-secrets v0.0.0-20251122115546-112c9c0c7d67` to a tagged version and drop the `replace` once a published tag exists.
 
 ## Build & test
 - Build: `GOFLAGS=-mod=mod go build ./cmd/federation`.
