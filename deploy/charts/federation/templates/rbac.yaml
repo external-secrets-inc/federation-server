@@ -1,0 +1,92 @@
+{{- if .Values.rbac.create -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "federation.fullname" . }}
+  labels:
+    {{- include "federation.labels" . | nindent 4 }}
+rules:
+  - apiGroups:
+      - federation.external-secrets.io
+    resources:
+      - authorizations
+      - authorizations/status
+      - authorizations/finalizers
+      - authorizedidentities
+      - authorizedidentities/status
+      - authorizedidentities/finalizers
+    verbs: ["*"]
+  - apiGroups:
+      - identity.federation.external-secrets.io
+    resources:
+      - kubernetesfederations
+      - kubernetesfederations/status
+      - kubernetesfederations/finalizers
+      - oktafederations
+      - oktafederations/status
+      - oktafederations/finalizers
+      - pingidentityfederations
+      - pingidentityfederations/status
+      - pingidentityfederations/finalizers
+      - spiffefederations
+      - spiffefederations/status
+      - spiffefederations/finalizers
+    verbs: ["*"]
+  - apiGroups:
+      - generators.external-secrets.io
+    resources:
+      - "*"
+      - "*/status"
+      - "*/finalizers"
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+      - deletecollection
+  - apiGroups:
+      - external-secrets.io
+    resources:
+      - secretstores
+      - clustersecretstores
+      - externalsecrets
+      - clusterexternalsecrets
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups: [""]
+    resources:
+      - serviceaccounts
+      - pods
+      - namespaces
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups: [""]
+    resources:
+      - events
+    verbs:
+      - create
+      - patch
+      - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "federation.fullname" . }}
+  labels:
+    {{- include "federation.labels" . | nindent 4 }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "federation.serviceAccountName" . }}
+    namespace: {{ include "federation.namespace" . }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "federation.fullname" . }}
+{{- end }}

@@ -1,0 +1,12 @@
+apiVersion: v2
+name: federation-server
+description: External Secrets Federation controllers and server.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: ">=1.27.0-0"
+home: https://github.com/external-secrets-inc/federation-server
+sources:
+  - https://github.com/external-secrets-inc/federation-server
+maintainers:
+  - name: external-secrets-maintainers

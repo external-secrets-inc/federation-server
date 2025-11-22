@@ -1,0 +1,96 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/external-secrets-inc/federation-server
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+namespaceOverride: ""
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  extraLabels: {}
+  name: ""
+
+rbac:
+  create: true
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext: {}
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+
+service:
+  type: ClusterIP
+  annotations: {}
+  ipFamilyPolicy: ""
+  ipFamilies: []
+  port: 8000
+  tlsPort: 8443
+  enableTLS: false
+
+metrics:
+  port: 8080
+  secure:
+    enabled: false
+    certDir: /certs
+    certFile: tls.crt
+    keyFile: tls.key
+    secretName: ""
+  serviceMonitor:
+    enabled: false
+    interval: 30s
+    labels: {}
+    annotations: {}
+
+probe:
+  port: 8081
+  liveness:
+    enabled: true
+    path: /healthz
+    initialDelaySeconds: 15
+    periodSeconds: 10
+  readiness:
+    enabled: true
+    path: /readyz
+    initialDelaySeconds: 5
+    periodSeconds: 10
+
+controller:
+  leaderElection: false
+  class: external-secrets
+  concurrent: 1
+  clientQPS: 50
+  clientBurst: 100
+  floodGate: true
+  enableHTTP2: false
+  spireAgentSocketPath: unix:///tmp/spire-agent/public/api.sock
+  log:
+    level: info
+    timeEncoding: epoch
+  extraArgs: []
+  env: []
+  envFrom: []
+  resources: {}
+  priorityClassName: ""
+  extraVolumeMounts: []
+  extraVolumes: []
+  topologySpreadConstraints: []
+  nodeSelector: {}
+  affinity: {}
+  tolerations: []
+  hostNetwork: false
+
+crds:
+  create: true

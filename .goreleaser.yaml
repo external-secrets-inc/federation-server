@@ -1,0 +1,58 @@
+version: 2
+
+project_name: external-secrets-federation
+
+env:
+  - CGO_ENABLED=0
+
+builds:
+  - id: federation
+    main: ./cmd/federation
+    binary: federation
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+
+archives:
+  - id: federation-archives
+    builds:
+      - federation
+    format: tar.gz
+    name_template: "{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+dockers:
+  - id: federation-docker
+    use: docker
+    image_templates:
+      - "{{ .Env.DOCKER_REGISTRY | default \"ghcr.io/external-secrets-inc\" }}/federation-server:{{ .Tag }}"
+      - "{{ .Env.DOCKER_REGISTRY | default \"ghcr.io/external-secrets-inc\" }}/federation-server:{{ .Major }}.{{ .Minor }}"
+    dockerfile: Dockerfile
+    goos: linux
+    goarch:
+      - amd64
+      - arm64
+    build_flag_templates:
+      - "--platform=linux/{{ .Arch }}"
+      - "--build-arg=TARGETOS={{ .Os }}"
+      - "--build-arg=TARGETARCH={{ .Arch }}"
+    skip_push: true
+
+sboms:
+  - artifacts: archive
+
+checksum:
+  name_template: "checksums.txt"
+
+release:
+  prerelease: auto
+
+helm:
+  - name: federation-server
+    chart: deploy/charts/federation
+    version: "{{ .Version }}"
+    appVersion: "{{ .Version }}"
+    skip_push: true

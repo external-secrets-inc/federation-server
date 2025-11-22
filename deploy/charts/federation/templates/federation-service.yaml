@@ -1,28 +1,33 @@
-{{- if .Values.federation.service.enabled -}}
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "external-secrets.fullname" . }}-federation-server
-  namespace: {{ template "external-secrets.namespace" . }}
+  name: {{ include "federation.fullname" . }}-server
+  namespace: {{ include "federation.namespace" . }}
   labels:
-    {{- include "external-secrets.labels" . | nindent 4 }}
-  {{- with .Values.metrics.service.annotations }}
+    {{- include "federation.labels" . | nindent 4 }}
+  {{- with .Values.service.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  type: ClusterIP
+  type: {{ .Values.service.type }}
   {{- if .Values.service.ipFamilyPolicy }}
   ipFamilyPolicy: {{ .Values.service.ipFamilyPolicy }}
   {{- end }}
   {{- if .Values.service.ipFamilies }}
-  ipFamilies: {{ .Values.service.ipFamilies | toYaml | nindent 2 }}
+  ipFamilies:
+    {{- toYaml .Values.service.ipFamilies | nindent 4 }}
   {{- end }}
-  ports:
-    - port: {{ .Values.federation.service.port }}
-      protocol: TCP
-      targetPort: server
-      name: server
   selector:
-    {{- include "external-secrets.selectorLabels" . | nindent 4 }}
-{{- end }}
+    {{- include "federation.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: server
+      port: {{ .Values.service.port }}
+      targetPort: server
+      protocol: TCP
+    {{- if .Values.service.enableTLS }}
+    - name: server-tls
+      port: {{ .Values.service.tlsPort }}
+      targetPort: server-tls
+      protocol: TCP
+    {{- end }}

@@ -3,19 +3,16 @@
 This repo hosts the federation CRDs, controllers, and HTTP/mTLS server split out of the enterprise controller.
 
 ## Bootstrap
-- Go 1.25.4+.
+- Go 1.25.4+, Docker, Helm 3.16+, controller-gen in `$PATH`.
 - `go mod tidy` uses a `replace` to the enterprise repo at commit `112c9c0c7d67`. Swap the `require github.com/external-secrets/external-secrets v0.0.0-20251122115546-112c9c0c7d67` to a tagged version and drop the `replace` once a published tag exists.
 
-## Build & test
-- Build: `GOFLAGS=-mod=mod go build ./cmd/federation`.
-- Unit tests: `GOFLAGS=-mod=mod go test ./...` (uses the local replace block).
-- Static check for stray relative imports: `rg '../external-secrets'` (expect only go.mod replaces until a tag exists).
-
-## CRDs
-- CRDs live under `config/crds/bases/`. Regenerate with controller-gen (from this repo root):
-  ```
-  controller-gen crd:crdVersions=v1 paths=./apis/... output:crd:artifacts:config=config/crds/bases
-  ```
+## Build, test, release
+- Build: `make build` (binary at `bin/federation`).
+- Unit tests: `make test` (sets `GOFLAGS=-mod=mod`).
+- CRDs: `make crds` regenerates `config/crds/bases` and the chart CRDs are kept under `deploy/charts/federation/crds/`.
+- Docker image: `make docker-build IMAGE=ghcr.io/<repo>/federation-server:<tag>`.
+- Helm chart: `make helm-lint` and `make helm-package` (outputs to `dist/`).
+- Release: `make release-snapshot` locally or use the tag-triggered GitHub Action (`.github/workflows/release.yaml`) which runs GoReleaser (archives, image build with `skip_push`, Helm chart package).
 
 ## Assets moved to this repo from external-secrets-enterprise
 - Federation controllers: `pkg/enterprise/controllers/federation/**`
@@ -23,7 +20,7 @@ This repo hosts the federation CRDs, controllers, and HTTP/mTLS server split out
 - APIs: `apis/enterprise/federation/**` (including identity)
 - CRDs: `config/crds/bases/*federation*`, identity CRDs
 - Samples: `config/samples/federation/**`
-- Helm bits: `deploy/charts/federation/templates/**`
+- Helm chart: `deploy/charts/federation/**`
 
 ## Notes
 - The federation generator remains in the core repo; this binary exposes the federation server and controllers only.
