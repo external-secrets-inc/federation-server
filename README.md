@@ -1,4 +1,4 @@
-# external-secrets-federation (Phase 1 bootstrap)
+# external-secrets-federation
 
 This repo hosts the federation CRDs, controllers, and HTTP/mTLS server split out of the enterprise controller.
 
@@ -17,7 +17,7 @@ This repo hosts the federation CRDs, controllers, and HTTP/mTLS server split out
   controller-gen crd:crdVersions=v1 paths=./apis/... output:crd:artifacts:config=config/crds/bases
   ```
 
-## Assets moved in Phase 1
+## Assets moved to this repo from external-secrets-enterprise
 - Federation controllers: `pkg/enterprise/controllers/federation/**`
 - Federation server + deps/store/auth: `pkg/enterprise/federation/**`
 - APIs: `apis/enterprise/federation/**` (including identity)
