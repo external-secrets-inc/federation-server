@@ -8,10 +8,15 @@ on:
 permissions:
   contents: write
   packages: write
+  id-token: write
 
 jobs:
-  goreleaser:
+  release:
     runs-on: ubuntu-latest
+    env:
+      IMAGE_REPO: us-central1-docker.pkg.dev/external-secrets-inc-registry/external/federation-server
+      HELM_REPO: oci://us-central1-docker.pkg.dev/external-secrets-inc-registry/public/charts
+      TAG: ${{ github.ref_name }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -21,40 +26,70 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - uses: azure/setup-helm@v4
-        with:
-          version: v3.16.3
-
-      - uses: sigstore/cosign-installer@v3
-        with:
-          cosign-release: v2.4.1
-
-      - uses: docker/setup-qemu-action@v3
-
-      - uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Run tests
         env:
           GOFLAGS: -mod=mod
         run: go test ./...
 
-      - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v6
+      - uses: docker/setup-qemu-action@v3
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Authenticate to Google Cloud (workload identity)
+        id: auth
+        uses: google-github-actions/auth@v2
         with:
-          version: latest
-          args: release --clean
+          token_format: access_token
+          workload_identity_provider: ${{ vars.DEV_IDENTITY_POOL }}
+          service_account: ${{ vars.DEV_CI_SERVICE_ACCOUNT }}
+          access_token_lifetime: 3600s
+
+      - name: Log in to Artifact Registry
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GOFLAGS: -mod=mod
-          HELM_EXPERIMENTAL_OCI: 1
-          DOCKER_REGISTRY: ghcr.io/external-secrets-inc
-          HELM_REPOSITORY: oci://ghcr.io/external-secrets-inc/charts
-          COSIGN_KEY: ${{ secrets.COSIGN_KEY }}
-          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+          ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+        run: |
+          echo "$ACCESS_TOKEN" | docker login us-central1-docker.pkg.dev -u oauth2accesstoken --password-stdin
+
+      - name: Build and push multi-arch image
+        run: |
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            -t ${IMAGE_REPO}:${TAG} \
+            -f Dockerfile \
+            --push .
+
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.16.3
+
+      - name: Helm registry login (Artifact Registry)
+        env:
+          ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+        run: echo "$ACCESS_TOKEN" | helm registry login us-central1-docker.pkg.dev -u oauth2accesstoken --password-stdin
+
+      - name: Package and push Helm chart
+        run: |
+          mkdir -p dist
+          helm package deploy/charts/federation -d dist --version ${TAG} --app-version ${TAG}
+          helm push dist/federation-${TAG}.tgz ${HELM_REPO}
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+        with:
+          cosign-release: v2.4.1
+
+      - name: Install syft
+        uses: anchore/sbom-action/download-syft@v0.7.0
+
+      - name: Install crane
+        run: go install github.com/google/go-containerregistry/cmd/crane@v0.20.1
+
+      - name: Sign and attest image (cosign + syft)
+        env:
+          COSIGN_EXPERIMENTAL: "1"
+        run: |
+          export PATH="$PATH:$(go env GOPATH)/bin"
+          DIGEST=$(crane digest ${IMAGE_REPO}:${TAG})
+          syft ${IMAGE_REPO}@${DIGEST} -o spdx-json=sbom.spdx.json
+          cosign attest --predicate sbom.spdx.json --type spdx ${IMAGE_REPO}@${DIGEST}
+          cosign sign ${IMAGE_REPO}@${DIGEST}

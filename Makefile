@@ -3,11 +3,15 @@ SHELL := /bin/bash
 GO ?= go
 GOFLAGS ?= -mod=mod
 BIN ?= bin/federation
-IMAGE ?= ghcr.io/external-secrets-inc/federation-server:dev
+REGISTRY ?= us-central1-docker.pkg.dev/external-secrets-inc-registry/external
+IMAGE_NAME ?= federation-server
+IMAGE ?= $(REGISTRY)/$(IMAGE_NAME)
+VERSION ?= dev
 DOCKERFILE ?= Dockerfile
 CHART ?= deploy/charts/federation
 DIST ?= dist
-GORELEASER ?= goreleaser
+HELM_REPO ?= oci://us-central1-docker.pkg.dev/external-secrets-inc-registry/public/charts
+DOCKER_PLATFORMS ?= linux/amd64,linux/arm64
 CONTROLLER_GEN ?= controller-gen
 
 .PHONY: build
@@ -43,20 +47,25 @@ helm-package:
 
 .PHONY: docker-build
 docker-build:
-	docker build --build-arg TARGETOS=linux --build-arg TARGETARCH=amd64 -t $(IMAGE) -f $(DOCKERFILE) .
+	docker build --build-arg TARGETOS=linux --build-arg TARGETARCH=amd64 -t $(IMAGE):$(VERSION) -f $(DOCKERFILE) .
 
 .PHONY: docker-buildx
 docker-buildx:
-	docker buildx build --platform linux/amd64,linux/arm64 -t $(IMAGE) -f $(DOCKERFILE) .
+	docker buildx build --platform $(DOCKER_PLATFORMS) -t $(IMAGE):$(VERSION) -f $(DOCKERFILE) .
+
+.PHONY: docker-buildx-push
+docker-buildx-push:
+	docker buildx build --platform $(DOCKER_PLATFORMS) -t $(IMAGE):$(VERSION) -f $(DOCKERFILE) --push .
 
 .PHONY: docker-push
 docker-push:
-	docker push $(IMAGE)
+	docker push $(IMAGE):$(VERSION)
 
-.PHONY: release-snapshot
-release-snapshot:
-	$(GORELEASER) release --clean --skip=sign --skip=publish --snapshot
+.PHONY: helm-package
+helm-package:
+	mkdir -p $(DIST)
+	helm package $(CHART) -d $(DIST) --version $(VERSION) --app-version $(VERSION)
 
-.PHONY: release
-release:
-	$(GORELEASER) release --clean
+.PHONY: helm-push
+helm-push: helm-package
+	helm push $(DIST)/federation-$(VERSION).tgz $(HELM_REPO)
