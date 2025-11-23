@@ -49,7 +49,6 @@ var (
 	clientQPS               float64
 	clientBurst             int
 	enableHTTP2             bool
-	zapTimeEncoding         string
 	defaultControllerClass  = "external-secrets"
 	defaultSpireAgentSocket = "unix:///tmp/spire-agent/public/api.sock"
 )
@@ -77,32 +76,31 @@ func init() {
 }
 
 func main() {
+	fs := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	zapOpts := zap.Options{
 		Development: false,
 		TimeEncoder: zapcore.EpochNanosTimeEncoder,
 	}
-	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metrics endpoint binds to.")
-	flag.BoolVar(&metricsSecure, "metrics-secure", false, "Enable HTTPS for the metrics endpoint.")
-	flag.StringVar(&metricsCertDir, "metrics-cert-dir", "", "Directory containing TLS certificate and key for metrics endpoint.")
-	flag.StringVar(&metricsCertName, "metrics-cert-name", "tls.crt", "TLS certificate filename for metrics endpoint.")
-	flag.StringVar(&metricsKeyName, "metrics-key-name", "tls.key", "TLS key filename for metrics endpoint.")
-	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoints bind to.")
-	flag.StringVar(&controllerClass, "controller-class", defaultControllerClass, "Controller class label used for federation reconciliation.")
-	flag.BoolVar(&enableLeaderElection, "leader-elect", false, "Enable leader election for the federation manager.")
-	flag.IntVar(&concurrent, "concurrent", 1, "The number of concurrent reconciles.")
-	flag.Float64Var(&clientQPS, "client-qps", 50, "QPS configuration to be passed to rest.Config.")
-	flag.IntVar(&clientBurst, "client-burst", 100, "Burst configuration to be passed to rest.Config.")
-	flag.StringVar(&serverPort, "server-port", ":8000", "Federation server port.")
-	flag.StringVar(&serverTLSPort, "server-tls-port", ":8001", "Federation server TLS port.")
-	flag.BoolVar(&enableFederationTLS, "enable-federation-tls", false, "Enable federation server TLS.")
-	flag.StringVar(&spireAgentSocketPath, "spire-agent-socket-path", defaultSpireAgentSocket, "Path to the Spire agent socket.")
-	flag.BoolVar(&enableFloodGate, "enable-flood-gate", true, "Enable flood gate behavior when resolving stores.")
-	flag.BoolVar(&enableHTTP2, "enable-http2", false, "If set, HTTP/2 will be enabled for the metrics server.")
-	flag.StringVar(&zapTimeEncoding, "zap-time-encoding", "epoch", "Zap time encoding (one of 'epoch', 'millis', 'nano', 'iso8601', 'rfc3339' or 'rfc3339nano').")
-	zapOpts.BindFlags(flag.CommandLine)
-	flag.Parse()
+	fs.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metrics endpoint binds to.")
+	fs.BoolVar(&metricsSecure, "metrics-secure", false, "Enable HTTPS for the metrics endpoint.")
+	fs.StringVar(&metricsCertDir, "metrics-cert-dir", "", "Directory containing TLS certificate and key for metrics endpoint.")
+	fs.StringVar(&metricsCertName, "metrics-cert-name", "tls.crt", "TLS certificate filename for metrics endpoint.")
+	fs.StringVar(&metricsKeyName, "metrics-key-name", "tls.key", "TLS key filename for metrics endpoint.")
+	fs.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoints bind to.")
+	fs.StringVar(&controllerClass, "controller-class", defaultControllerClass, "Controller class label used for federation reconciliation.")
+	fs.BoolVar(&enableLeaderElection, "leader-elect", false, "Enable leader election for the federation manager.")
+	fs.IntVar(&concurrent, "concurrent", 1, "The number of concurrent reconciles.")
+	fs.Float64Var(&clientQPS, "client-qps", 50, "QPS configuration to be passed to rest.Config.")
+	fs.IntVar(&clientBurst, "client-burst", 100, "Burst configuration to be passed to rest.Config.")
+	fs.StringVar(&serverPort, "server-port", ":8000", "Federation server port.")
+	fs.StringVar(&serverTLSPort, "server-tls-port", ":8001", "Federation server TLS port.")
+	fs.BoolVar(&enableFederationTLS, "enable-federation-tls", false, "Enable federation server TLS.")
+	fs.StringVar(&spireAgentSocketPath, "spire-agent-socket-path", defaultSpireAgentSocket, "Path to the Spire agent socket.")
+	fs.BoolVar(&enableFloodGate, "enable-flood-gate", true, "Enable flood gate behavior when resolving stores.")
+	fs.BoolVar(&enableHTTP2, "enable-http2", false, "If set, HTTP/2 will be enabled for the metrics server.")
+	zapOpts.BindFlags(fs)
+	_ = fs.Parse(os.Args[1:])
 
-	zapOpts.TimeEncoder = zapTimeEncoder(zapTimeEncoding)
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zapOpts)))
 
 	cfg := ctrl.GetConfigOrDie()
@@ -215,23 +213,6 @@ func main() {
 	if err := mgr.Start(ctx); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
-	}
-}
-
-func zapTimeEncoder(format string) zapcore.TimeEncoder {
-	switch format {
-	case "millis":
-		return zapcore.EpochMillisTimeEncoder
-	case "nano":
-		return zapcore.EpochNanosTimeEncoder
-	case "iso8601":
-		return zapcore.ISO8601TimeEncoder
-	case "rfc3339":
-		return zapcore.RFC3339TimeEncoder
-	case "rfc3339nano":
-		return zapcore.RFC3339NanoTimeEncoder
-	default:
-		return zapcore.EpochTimeEncoder
 	}
 }
 

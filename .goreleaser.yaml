@@ -28,8 +28,8 @@ dockers:
   - id: federation-docker
     use: docker
     image_templates:
-      - "{{ .Env.DOCKER_REGISTRY | default \"ghcr.io/external-secrets-inc\" }}/federation-server:{{ .Tag }}"
-      - "{{ .Env.DOCKER_REGISTRY | default \"ghcr.io/external-secrets-inc\" }}/federation-server:{{ .Major }}.{{ .Minor }}"
+      - "{{ .Env.DOCKER_REGISTRY | default \"ghcr.io/external-secrets-inc\" }}/federation-server:{{ .Tag }}-{{ .Arch }}"
+      - "{{ .Env.DOCKER_REGISTRY | default \"ghcr.io/external-secrets-inc\" }}/federation-server:{{ .Major }}.{{ .Minor }}-{{ .Arch }}"
     dockerfile: Dockerfile
     goos: linux
     goarch:
@@ -39,10 +39,45 @@ dockers:
       - "--platform=linux/{{ .Arch }}"
       - "--build-arg=TARGETOS={{ .Os }}"
       - "--build-arg=TARGETARCH={{ .Arch }}"
-    skip_push: true
+    skip_push: false
+
+docker_manifests:
+  - name_template: "{{ .Env.DOCKER_REGISTRY | default \"ghcr.io/external-secrets-inc\" }}/federation-server:{{ .Tag }}"
+    image_templates:
+      - "{{ .Env.DOCKER_REGISTRY | default \"ghcr.io/external-secrets-inc\" }}/federation-server:{{ .Tag }}-amd64"
+      - "{{ .Env.DOCKER_REGISTRY | default \"ghcr.io/external-secrets-inc\" }}/federation-server:{{ .Tag }}-arm64"
+  - name_template: "{{ .Env.DOCKER_REGISTRY | default \"ghcr.io/external-secrets-inc\" }}/federation-server:{{ .Major }}.{{ .Minor }}"
+    image_templates:
+      - "{{ .Env.DOCKER_REGISTRY | default \"ghcr.io/external-secrets-inc\" }}/federation-server:{{ .Major }}.{{ .Minor }}-amd64"
+      - "{{ .Env.DOCKER_REGISTRY | default \"ghcr.io/external-secrets-inc\" }}/federation-server:{{ .Major }}.{{ .Minor }}-arm64"
 
 sboms:
-  - artifacts: archive
+  - artifacts:
+      - archive
+      - docker
+
+signs:
+  - id: cosign-docker
+    cmd: cosign
+    artifacts: docker
+    args:
+      - sign
+      - "--key=${COSIGN_KEY}"
+      - "${artifact}"
+    env:
+      - COSIGN_EXPERIMENTAL=1
+    skip: "{{ eq (env `COSIGN_KEY`) `` }}"
+  - id: cosign-checksums
+    cmd: cosign
+    artifacts: checksum
+    args:
+      - sign-blob
+      - "--key=${COSIGN_KEY}"
+      - "--output-signature=${signature}"
+      - "${artifact}"
+    env:
+      - COSIGN_EXPERIMENTAL=1
+    skip: "{{ eq (env `COSIGN_KEY`) `` }}"
 
 checksum:
   name_template: "checksums.txt"
@@ -55,4 +90,5 @@ helm:
     chart: deploy/charts/federation
     version: "{{ .Version }}"
     appVersion: "{{ .Version }}"
-    skip_push: true
+    repository: "{{ .Env.HELM_REPOSITORY | default \"oci://ghcr.io/external-secrets-inc/charts\" }}"
+    skip_push: false

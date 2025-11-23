@@ -53,7 +53,7 @@ spec:
             - --enable-flood-gate={{ .Values.controller.floodGate }}
             - --enable-http2={{ .Values.controller.enableHTTP2 }}
             - --zap-time-encoding={{ .Values.controller.log.timeEncoding }}
-            - --loglevel={{ .Values.controller.log.level }}
+            - --zap-log-level={{ .Values.controller.log.level }}
             {{- if .Values.controller.leaderElection }}
             - --leader-elect=true
             {{- end }}
