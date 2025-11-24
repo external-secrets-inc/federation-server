@@ -14,6 +14,11 @@ This repo hosts the federation CRDs, controllers, and HTTP/mTLS server split out
 - Helm chart: `make helm-lint` and `make helm-package` (outputs to `dist/`).
 - Release: `make release-snapshot` locally or use the tag-triggered GitHub Action (`.github/workflows/release.yaml`) which runs GoReleaser (archives, image build with `skip_push`, Helm chart package).
 
+## Contract tests
+- Compatibility matrix lives in `docs/compatibility.md` with the machine-readable source in `docs/compatibility.json` (consumed by CI).
+- Run locally: `make contract-test` (defaults to `MATRIX_INDEX=0` from `docs/compatibility.json`). Override with `CORE_CHART`, `CORE_VERSION`, `FED_CHART`, or `FED_VERSION` to test other pairs.
+- CI workflow: `.github/workflows/contract.yaml` creates a kind cluster, installs the enterprise chart and this federation chart per the matrix, and waits for controllers/CRDs to become ready.
+
 ## Assets moved to this repo from external-secrets-enterprise
 - Federation controllers: `pkg/enterprise/controllers/federation/**`
 - Federation server + deps/store/auth: `pkg/enterprise/federation/**`

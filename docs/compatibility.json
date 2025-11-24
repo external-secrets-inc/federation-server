@@ -1,0 +1,9 @@
+[
+  {
+    "core_chart": "oci://us-central1-docker.pkg.dev/external-secrets-inc-registry/public/charts/external-secrets",
+    "core_version": "1.24.0",
+    "federation_chart": "oci://us-central1-docker.pkg.dev/external-secrets-inc-registry/public/charts/federation",
+    "federation_version": "1.24.0",
+    "notes": "Lockstep minor releases during cutover; update when a new pair ships"
+  }
+]

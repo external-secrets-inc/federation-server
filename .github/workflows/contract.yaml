@@ -1,0 +1,65 @@
+name: contract
+
+on:
+  push:
+    branches:
+      - main
+  pull_request: {}
+  workflow_dispatch: {}
+  schedule:
+    - cron: "0 6 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - core_chart: oci://us-central1-docker.pkg.dev/external-secrets-inc-registry/public/charts/external-secrets
+            core_version: "1.24.0"
+            federation_chart: oci://us-central1-docker.pkg.dev/external-secrets-inc-registry/public/charts/federation
+            federation_version: "1.24.0"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.16.3
+
+      - name: Create kind cluster
+        uses: helm/kind-action@v1.9.0
+        with:
+          cluster_name: contract
+          wait: 120s
+
+      - name: Verify compatibility entry exists
+        run: |
+          python - <<'PY'
+          import json
+          import sys
+
+          matrix_entry = {
+              "core_chart": "${{ matrix.core_chart }}",
+              "core_version": "${{ matrix.core_version }}",
+              "federation_chart": "${{ matrix.federation_chart }}",
+              "federation_version": "${{ matrix.federation_version }}",
+          }
+          with open("docs/compatibility.json", "r", encoding="utf-8") as fh:
+              entries = json.load(fh)
+          if matrix_entry not in entries:
+              sys.exit("matrix entry not found in docs/compatibility.json; update the docs file to match")
+          print("compatibility entry present in docs/compatibility.json")
+          PY
+
+
+      - name: Run contract test
+        env:
+          CORE_CHART: ${{ matrix.core_chart }}
+          CORE_VERSION: ${{ matrix.core_version }}
+          FED_CHART: ${{ matrix.federation_chart }}
+          FED_VERSION: ${{ matrix.federation_version }}
+        run: bash hack/contract-test.sh

@@ -69,3 +69,9 @@ helm-package:
 .PHONY: helm-push
 helm-push: helm-package
 	helm push $(DIST)/federation-$(VERSION).tgz $(HELM_REPO)
+
+CONTRACT_MATRIX_INDEX ?= 0
+
+.PHONY: contract-test
+contract-test:
+	MATRIX_INDEX=$(CONTRACT_MATRIX_INDEX) bash hack/contract-test.sh
