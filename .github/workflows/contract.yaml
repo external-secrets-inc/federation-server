@@ -50,7 +50,10 @@ jobs:
           }
           with open("docs/compatibility.json", "r", encoding="utf-8") as fh:
               entries = json.load(fh)
-          if matrix_entry not in entries:
+          required = ("core_chart", "core_version", "federation_chart", "federation_version")
+          def matches(entry):
+              return all(entry.get(k) == matrix_entry[k] for k in required)
+          if not any(matches(e) for e in entries):
               sys.exit("matrix entry not found in docs/compatibility.json; update the docs file to match")
           print("compatibility entry present in docs/compatibility.json")
           PY
